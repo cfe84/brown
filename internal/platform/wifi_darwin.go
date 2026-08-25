@@ -15,6 +15,15 @@ type WiFiNeighbor struct {
 	RSSIValue, PrimaryChannel, WidthMHz                    int
 }
 
+func isWiFiField(key string) bool {
+	switch key {
+	case "PHY Mode", "Channel", "Country Code", "Network Type", "Security", "Signal / Noise", "Transmit Rate", "MCS Index", "Status", "BSSID":
+		return true
+	default:
+		return false
+	}
+}
+
 type WiFiInfo struct {
 	SSID, Interface, BSSID, PHY, Band, Channel, Width, RSSI, Noise, SNR, TransmitRate, MCS, Security, Gateway string
 	Enabled, Associated                                                                                       bool
@@ -55,7 +64,7 @@ func ActiveWiFi() (WiFiInfo, error) {
 		return WiFiInfo{}, fmt.Errorf("could not inspect Wi-Fi configuration: %w", err)
 	}
 	parseWiFiProfile(string(profile), &info)
-	info.Associated = info.SSID != "" || info.BSSID != ""
+	info.Associated = info.Associated || info.SSID != "" || info.BSSID != ""
 	info.Findings = validateWiFi(info)
 	return info, nil
 }
@@ -65,6 +74,9 @@ func parseWiFiProfile(output string, info *WiFiInfo) {
 	var neighbor *WiFiNeighbor
 	for _, raw := range strings.Split(output, "\n") {
 		line := strings.TrimSpace(raw)
+		if line == "Status: Connected" {
+			info.Associated = true
+		}
 		if strings.HasPrefix(line, "Current Network Information:") {
 			active = true
 			continue
@@ -82,6 +94,8 @@ func parseWiFiProfile(output string, info *WiFiInfo) {
 			switch key {
 			case "Network Name (SSID)":
 				info.SSID = value
+			case "Status":
+				info.Associated = strings.EqualFold(value, "Connected")
 			case "BSSID":
 				info.BSSID = value
 			case "PHY Mode":
@@ -100,6 +114,12 @@ func parseWiFiProfile(output string, info *WiFiInfo) {
 				info.MCS = value
 			case "Security":
 				info.Security = value
+			}
+			// Privacy-redacted profiler output replaces the SSID key with a
+			// placeholder, so the first entry under the active network is
+			// still sufficient to establish association.
+			if info.SSID == "" && !isWiFiField(key) {
+				info.SSID = key
 			}
 		} else {
 			if key != "" && !strings.Contains(strings.ToLower(key), "network") {
