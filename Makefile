@@ -5,7 +5,7 @@ GOFLAGS :=
 INSTALL_CANDIDATES := $(HOME)/bin $(HOME)/.bin $(HOME)/.local/bin $(HOME)/local/bin /usr/local/bin
 INSTALL_DIR := $(firstword $(foreach d,$(INSTALL_CANDIDATES),$(wildcard $(d))))
 
-.PHONY: build run clean test vet fmt lint check install uninstall
+.PHONY: build run clean test vet fmt lint check install uninstall bandwidth-server
 
 build:
 	go build $(GOFLAGS) -o $(BINARY) $(PKG)
@@ -42,3 +42,6 @@ ifeq ($(INSTALL_DIR),)
 endif
 	rm -f $(INSTALL_DIR)/$(BINARY)
 	@echo "removed $(INSTALL_DIR)/$(BINARY)"
+
+bandwidth-server:
+	node bandwidth-server/server.js

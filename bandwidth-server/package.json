@@ -1,0 +1,9 @@
+{
+  "name": "brown-bandwidth-server",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Minimal HTTP receiver for Brown bandwidth tests",
+  "scripts": {
+    "start": "node server.js"
+  }
+}
